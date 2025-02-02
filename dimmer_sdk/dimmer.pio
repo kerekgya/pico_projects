@@ -1,0 +1,46 @@
+.program dimmer
+    pull block
+    mov ISR, OSR
+
+    pull block
+    mov x, OSR
+    mov y, x
+loop:
+    ; pull noblock
+    ; mov ISR, OSR
+
+    mov x, y
+    pull noblock
+    mov y, OSR
+    wait 1 pin 0
+lp1:
+    jmp x-- lp1
+    set pins, 1
+
+    mov x, ISR
+lp2:
+    jmp x-- lp2
+
+    set pins, 0
+
+    jmp loop
+
+
+% c-sdk {
+static inline void dimmer_program_init(PIO pio, uint sm, uint offset, uint outpin, uint inpin) {
+    pio_sm_config c = dimmer_program_get_default_config(offset);
+
+    pio_gpio_init(pio, outpin);
+    pio_sm_set_consecutive_pindirs(pio, sm, outpin, 1, true);
+    sm_config_set_set_pins(&c, outpin, 1);
+
+    sm_config_set_in_pins(&c, inpin);
+    pio_gpio_init(pio, inpin);
+    pio_sm_set_consecutive_pindirs(pio, sm, inpin, 1, false);
+
+    // Load our configuration, and jump to the start of the program
+    pio_sm_init(pio, sm, offset, &c);
+    // Set the state machine running
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
